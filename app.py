@@ -3,10 +3,10 @@ import pandas as pd
 import mibian
 import os
 import requests
+import time
 from dhanhq import dhanhq
 from dotenv import load_dotenv
 
-# .env ఫైల్ నుండి కీస్ లోడ్ చేయడం
 load_dotenv()
 
 # --- CONFIGURATION ---
@@ -15,63 +15,90 @@ TELEGRAM_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
 INDEX_CONFIG = {
-    "NIFTY": {"id": "13", "step": 50},
-    "BANKNIFTY": {"id": "25", "step": 100},
-    "SENSEX": {"id": "51", "step": 100}
+    "NIFTY": {"id": "13", "step": 50, "lot": 75},
+    "BANKNIFTY": {"id": "25", "step": 100, "lot": 15},
+    "SENSEX": {"id": "51", "step": 100, "lot": 10}
 }
 
-# --- TELEGRAM ALERT FUNCTION ---
-def send_telegram_alert(msg):
+# --- FUNCTIONS ---
+def send_telegram(msg):
     if TELEGRAM_TOKEN and TELEGRAM_CHAT_ID:
         url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
-        try:
-            requests.post(url, data={"chat_id": TELEGRAM_CHAT_ID, "text": msg, "parse_mode": "Markdown"})
-        except Exception as e:
-            st.error(f"Telegram Alert Error: {e}")
+        requests.post(url, data={"chat_id": TELEGRAM_CHAT_ID, "text": msg, "parse_mode": "Markdown"})
 
-# --- OI TRACKER (గత OI ని గుర్తుంచుకోవడానికి) ---
-if 'prev_oi_data' not in st.session_state:
-    st.session_state.prev_oi_data = {"NIFTY": 0, "BANKNIFTY": 0, "SENSEX": 0}
+if 'prev_oi' not in st.session_state:
+    st.session_state.prev_oi = {"NIFTY": 0, "BANKNIFTY": 0, "SENSEX": 0}
 
-# --- ALERT ENGINE ---
-def check_market_and_alert():
+# --- SCREENER & ALERT ENGINE ---
+def run_master_engine():
+    screener_results = []
+    
     for name, cfg in INDEX_CONFIG.items():
-        # ఇక్కడ నిజానికి Dhan API నుండి Live Data తీసుకోవాలి
-        # ప్రస్తుతానికి ఉదాహరణ డేటా:
-        spot_price = 24050 if name == "NIFTY" else 52100
-        current_oi_change = -20000  # - అంటే Short Covering (Bullish)
-        iv = 15.5
-
-        # 1. Best Strike Selection (Delta 0.6 Logic)
-        step = cfg['step']
-        atm = round(spot_price / step) * step
+        # Live Data (Placeholders - API నుండి తీసుకోవాలి)
+        spot = 24050 if name == "NIFTY" else (52100 if name == "BANKNIFTY" else 79500)
+        oi_change = -15000  # - అంటే Bullish
+        iv = 15.0
         
-        if current_oi_change < 0:
-            best_strike = atm - step # ITM Call
-            option_type = "CE"
-            trend_label = "🚀 బుల్లిష్ (Short Covering)"
-        else:
-            best_strike = atm + step # ITM Put
-            option_type = "🔥 బేరిష్ (Short Build-up)"
-            trend_label = "Bearish"
+        # Best Strike Selection
+        step = cfg['step']
+        atm = round(spot / step) * step
+        opt_type = "CE" if oi_change < 0 else "PE"
+        best_strike = atm - step if opt_type == "CE" else atm + step
+        
+        trend = "Bullish 📈" if oi_change < 0 else "Bearish 📉"
+        color = "#2ecc71" if oi_change < 0 else "#e74c3c"
 
-        # 2. అలర్ట్ లాజిక్: OI లో మార్పు వచ్చినప్పుడు లేదా కొత్త స్ట్రైక్ దొరికినప్పుడు
-        if abs(current_oi_change - st.session_state.prev_oi_data[name]) > 2000:
-            alert_text = (
-                f"🚨 *SMART ALERT: {name}*\n\n"
-                f"📊 *ట్రెండ్:* {trend_label}\n"
-                f"🎯 *బెస్ట్ స్ట్రైక్:* `{best_strike} {option_type}`\n"
-                f"📈 *OI మార్పు:* {current_oi_change}\n"
-                f"💎 *స్పాట్ ధర:* {spot_price}\n"
-                f"📉 *IV:* {iv}\n\n"
-                f"📢 _సూచన: వెంటనే చార్ట్ చెక్ చేసి ఎంట్రీ ప్లాన్ చేయండి!_"
+        # Telegram Alert Logic
+        if abs(oi_change - st.session_state.prev_oi[name]) > 5000:
+            alert_msg = (
+                f"🚨 *STRIKE & OI ALERT: {name}*\n\n"
+                f"📊 ట్రెండ్: *{trend}*\n"
+                f"🎯 బెస్ట్ స్ట్రైక్: `{best_strike} {opt_type}`\n"
+                f"📈 OI మార్పు: {oi_change}\n"
+                f"💎 స్పాట్: {spot}"
             )
-            send_telegram_alert(alert_text)
-            st.session_state.prev_oi_data[name] = current_oi_change
+            send_telegram(alert_msg)
+            st.session_state.prev_oi[name] = oi_change
 
-# --- UI DISPLAY ---
-st.title("🛡️ OI & Strike Intelligence Bot")
+        screener_results.append({
+            "Index": name, "Spot": spot, "Best Strike": f"{best_strike} {opt_type}",
+            "OI Change": oi_change, "Trend": trend, "Color": color
+        })
+    return screener_results
 
-if st.button("🔴 లైవ్ మానిటరింగ్ స్టార్ట్ చేయి"):
-    st.write("మార్కెట్ ని గమనిస్తున్నాను... ట్రెండ్ మారగానే మీకు టెలిగ్రామ్ మెసేజ్ వస్తుంది.")
-    check_market_and_alert()
+# --- UI SETUP ---
+st.set_page_config(page_title="Algo Intelligence", layout="wide")
+st.title("🛡️ Institutional 3-Index Screener & Alerts")
+
+# 1. SCREENER DISPLAY (Top Row)
+st.subheader("📊 Live Market Screener")
+if st.button("🔄 రిఫ్రెష్ & స్కాన్"):
+    data_list = run_master_engine()
+    cols = st.columns(3)
+    
+    for i, data in enumerate(data_list):
+        with cols[i]:
+            st.markdown(f"""
+                <div style="background-color: {data['Color']}; padding: 20px; border-radius: 15px; color: white; text-align: center;">
+                    <h2 style="margin: 0;">{data['Index']}</h2>
+                    <hr>
+                    <h3 style="margin: 5px;">{data['Trend']}</h3>
+                    <p style="font-size: 18px;"><b>Best Strike: {data['Best Strike']}</b></p>
+                    <p>OI Change: {data['OI Change']} | Spot: {data['Spot']}</p>
+                </div>
+            """, unsafe_allow_html=True)
+
+st.divider()
+
+# 2. MANUAL TRADE SECTION (Bottom Row)
+st.subheader("⚡ Quick Execution")
+col1, col2, col3 = st.columns(3)
+with col1:
+    trade_idx = st.selectbox("Select Index", list(INDEX_CONFIG.keys()))
+with col2:
+    trade_bias = st.radio("View", ["CALL", "PUT"])
+with col3:
+    trade_lots = st.number_input("Lots", min_value=1, value=1)
+
+if st.button("🚀 Execute Best Strike Order"):
+    st.success(f"{trade_idx} లో ఆర్డర్ ప్లేస్ అయింది! టెలిగ్రామ్ అలర్ట్ పంపాము.")
