@@ -1,76 +1,77 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
 import mibian
 import os
-import time
 import requests
 from dhanhq import dhanhq
 from dotenv import load_dotenv
 
-# .env నుండి కీస్ లోడ్ చేయడం
+# .env ఫైల్ నుండి కీస్ లోడ్ చేయడం
 load_dotenv()
 
-# DHAN & TELEGRAM CONFIG
-CLIENT_ID = os.getenv("1106476940")
-ACCESS_TOKEN = os.getenv("eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJpc3MiOiJkaGFuIiwicGFydG5lcklkIjoiIiwiZXhwIjoxNzY5NjE1NzAyLCJpYXQiOjE3Njk1MjkzMDIsInRva2VuQ29uc3VtZXJUeXBlIjoiU0VMRiIsIndlYmhvb2tVcmwiOiIiLCJkaGFuQ2xpZW50SWQiOiIxMTA2NDc2OTQwIn0.MygCo_b-l1khRfC-V8_iYvqbeykHy4upKbdghs8ElQxBegN-wMDKfUwNNDyUH0ZQK8_YYZeQULFICMhoYsxTWA")
-TELEGRAM_TOKEN = os.getenv("8289933882:AAGgTyAhFHYzlKbZ_0rvH8GztqXeTB6P-yQ")
-TELEGRAM_CHAT_ID = os.getenv("2115666034")
+# --- CONFIGURATION ---
+dhan = dhanhq(os.getenv("DHAN_CLIENT_ID"), os.getenv("DHAN_ACCESS_TOKEN"))
+TELEGRAM_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 
-dhan = dhanhq(CLIENT_ID, ACCESS_TOKEN)
-
-INDEX_SETTINGS = {
-    "NIFTY": {"id": "13", "step": 50, "lot": 75},
-    "BANKNIFTY": {"id": "25", "step": 100, "lot": 15},
-    "SENSEX": {"id": "51", "step": 100, "lot": 10}
+INDEX_CONFIG = {
+    "NIFTY": {"id": "13", "step": 50},
+    "BANKNIFTY": {"id": "25", "step": 100},
+    "SENSEX": {"id": "51", "step": 100}
 }
 
-# TELEGRAM ALERT FUNCTION
-def send_telegram(msg):
+# --- TELEGRAM ALERT FUNCTION ---
+def send_telegram_alert(msg):
     if TELEGRAM_TOKEN and TELEGRAM_CHAT_ID:
         url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
-        requests.post(url, data={"chat_id": TELEGRAM_CHAT_ID, "text": msg, "parse_mode": "Markdown"})
+        try:
+            requests.post(url, data={"chat_id": TELEGRAM_CHAT_ID, "text": msg, "parse_mode": "Markdown"})
+        except Exception as e:
+            st.error(f"Telegram Alert Error: {e}")
 
-# GREEKS ENGINE
-def get_greeks(spot, strike, expiry_days, iv, opt_type):
-    try:
-        r = 7.0
-        bs = mibian.BS([spot, strike, r, expiry_days], volatility=iv)
-        if opt_type == 'CE':
-            return round(bs.callDelta, 2), round(bs.callTheta, 2)
-        return round(bs.putDelta, 2), round(bs.putTheta, 2)
-    except:
-        return 0.5, -0.1
+# --- OI TRACKER (గత OI ని గుర్తుంచుకోవడానికి) ---
+if 'prev_oi_data' not in st.session_state:
+    st.session_state.prev_oi_data = {"NIFTY": 0, "BANKNIFTY": 0, "SENSEX": 0}
 
-# STRIKE SELECTION
-def analyze_and_select_strike(index_name, bias):
-    spot = 24050 if index_name == "NIFTY" else 52100 # Placeholder for Live LTP
-    step = INDEX_SETTINGS[index_name]["step"]
-    atm = round(spot / step) * step
-    
-    strikes = []
-    for i in range(-2, 3):
-        s_price = atm + (i * step)
-        delta, theta = get_greeks(spot, s_price, 2, 15, "CE" if bias == "CALL" else "PE")
-        strikes.append({
-            "strike": s_price, "type": "CE" if bias == "CALL" else "PE",
-            "delta": delta, "theta": theta, "score": (1 - abs(abs(delta) - 0.6)) * 100
-        })
-    df = pd.DataFrame(strikes)
-    return spot, df.sort_values("score", ascending=False).iloc[0]
+# --- ALERT ENGINE ---
+def check_market_and_alert():
+    for name, cfg in INDEX_CONFIG.items():
+        # ఇక్కడ నిజానికి Dhan API నుండి Live Data తీసుకోవాలి
+        # ప్రస్తుతానికి ఉదాహరణ డేటా:
+        spot_price = 24050 if name == "NIFTY" else 52100
+        current_oi_change = -20000  # - అంటే Short Covering (Bullish)
+        iv = 15.5
 
-# UI SETUP
-st.set_page_config(page_title="Dhan Multi-Index Bot", layout="wide")
-st.title("🤖 Institutional Algo Bot")
+        # 1. Best Strike Selection (Delta 0.6 Logic)
+        step = cfg['step']
+        atm = round(spot_price / step) * step
+        
+        if current_oi_change < 0:
+            best_strike = atm - step # ITM Call
+            option_type = "CE"
+            trend_label = "🚀 బుల్లిష్ (Short Covering)"
+        else:
+            best_strike = atm + step # ITM Put
+            option_type = "🔥 బేరిష్ (Short Build-up)"
+            trend_label = "Bearish"
 
-idx = st.sidebar.selectbox("Index", list(INDEX_SETTINGS.keys()))
-bias = st.sidebar.radio("Market Bias", ["CALL", "PUT"])
-lots = st.sidebar.number_input("Lots", min_value=1, value=1)
+        # 2. అలర్ట్ లాజిక్: OI లో మార్పు వచ్చినప్పుడు లేదా కొత్త స్ట్రైక్ దొరికినప్పుడు
+        if abs(current_oi_change - st.session_state.prev_oi_data[name]) > 2000:
+            alert_text = (
+                f"🚨 *SMART ALERT: {name}*\n\n"
+                f"📊 *ట్రెండ్:* {trend_label}\n"
+                f"🎯 *బెస్ట్ స్ట్రైక్:* `{best_strike} {option_type}`\n"
+                f"📈 *OI మార్పు:* {current_oi_change}\n"
+                f"💎 *స్పాట్ ధర:* {spot_price}\n"
+                f"📉 *IV:* {iv}\n\n"
+                f"📢 _సూచన: వెంటనే చార్ట్ చెక్ చేసి ఎంట్రీ ప్లాన్ చేయండి!_"
+            )
+            send_telegram_alert(alert_text)
+            st.session_state.prev_oi_data[name] = current_oi_change
 
-if st.button("Analyze Market"):
-    spot, best_strike = analyze_and_select_strike(idx, bias)
-    st.write(f"### Spot: {spot} | Recommended: {best_strike['strike']} {best_strike['type']}")
-    
-    if st.button("🔥 Execute & Start TSL"):
-        send_telegram(f"🚀 *Trade Entry*\nIndex: {idx}\nStrike: {best_strike['strike']}\nType: {best_strike['type']}")
-        st.success("Trade Executed! Trailing SL is now Active.")
+# --- UI DISPLAY ---
+st.title("🛡️ OI & Strike Intelligence Bot")
+
+if st.button("🔴 లైవ్ మానిటరింగ్ స్టార్ట్ చేయి"):
+    st.write("మార్కెట్ ని గమనిస్తున్నాను... ట్రెండ్ మారగానే మీకు టెలిగ్రామ్ మెసేజ్ వస్తుంది.")
+    check_market_and_alert()
