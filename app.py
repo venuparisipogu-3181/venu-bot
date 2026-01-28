@@ -105,16 +105,16 @@ if st.button("🚀 Execute Best Strike Order"):
 import streamlit as st
 import streamlit.components.v1 as components
 
-def display_tradingview_chart(symbol):
-    # 1. ఇక్కడ స్టైల్ లో height ని 800px కి పెంచాను
+def display_tradingview_chart(symbol_name):
+    # TradingView Full Advanced Widget
     tradingview_html = f"""
     <div class="tradingview-widget-container" style="height:800px; width:100%;">
-      <div id="tradingview_chart" style="height:800px;"></div>
+      <div id="tradingview_full_widget" style="height:800px;"></div>
       <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
       <script type="text/javascript">
       new TradingView.widget({{
         "autosize": true,
-        "symbol": "NSE:{symbol}",
+        "symbol": "{symbol_name}",
         "interval": "5",
         "timezone": "Asia/Kolkata",
         "theme": "dark",
@@ -122,26 +122,38 @@ def display_tradingview_chart(symbol):
         "locale": "in",
         "toolbar_bg": "#f1f3f6",
         "enable_publishing": false,
-        "hide_side_toolbar": false,
+        "withdateranges": true,
+        "hide_side_toolbar": false,   // ఇది డ్రాయింగ్ టూల్స్ చూపిస్తుంది
         "allow_symbol_change": true,
-        "container_id": "tradingview_chart"
+        "details": true,
+        "hotlist": true,
+        "calendar": true,
+        "container_id": "tradingview_full_widget"
       }});
       </script>
     </div>
     """
-    # 2. ముఖ్యమైన మార్పు: ఇక్కడ height ని కూడా 800 లేదా అంతకంటే ఎక్కువ పెట్టాలి
-    components.html(tradingview_html, height=800)
+    components.html(tradingview_html, height=820)
 
-# --- UI లో చార్ట్ డిస్‌ప్లే ---
+# --- UI సెక్షన్ ---
 st.divider()
-st.subheader("📈 Live Market Chart (Big Screen)")
+st.subheader("📈 Live Market Intelligence Chart")
 
-chart_choice = st.selectbox("చార్ట్ చూడాల్సిన ఇండెక్స్ సెలెక్ట్ చేయండి:", ["NIFTY", "BANKNIFTY", "FINNIFTY"])
+# ఇండెక్స్ సెలెక్షన్ బాక్స్
+chart_choice = st.selectbox(
+    "చార్ట్ చూడాల్సిన ఇండెక్స్ సెలెక్ట్ చేయండి:", 
+    ["NIFTY 50", "BANKNIFTY", "SENSEX", "FINNIFTY"]
+)
 
-# మీరు పంపిన లాజిక్ ప్రకారం:
-if chart_choice == "NIFTY":
-    display_tradingview_chart("NIFTY")
+# సింబల్ మ్యాపింగ్ (Exchange ని బట్టి)
+if chart_choice == "NIFTY 50":
+    final_symbol = "NSE:NIFTY"
 elif chart_choice == "BANKNIFTY":
-    display_tradingview_chart("BANKNIFTY")
-else:
-    display_tradingview_chart("FINNIFTY")
+    final_symbol = "NSE:BANKNIFTY"
+elif chart_choice == "SENSEX":
+    final_symbol = "BSE:SENSEX"
+elif chart_choice == "FINNIFTY":
+    final_symbol = "NSE:FINNIFTY"
+
+# చార్ట్ ని ప్రదర్శించడం
+display_tradingview_chart(final_symbol)
