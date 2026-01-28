@@ -12,7 +12,7 @@ st.set_page_config(layout="wide", page_title="Venu's AI WebSocket")
 try:
     CLIENT_ID = st.secrets["1106476940"]
     ACCESS_TOKEN = st.secrets["eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJpc3MiOiJkaGFuIiwicGFydG5lcklkIjoiIiwiZXhwIjoxNzY5NjE1NzAyLCJpYXQiOjE3Njk1MjkzMDIsInRva2VuQ29uc3VtZXJUeXBlIjoiU0VMRiIsIndlYmhvb2tVcmwiOiIiLCJkaGFuQ2xpZW50SWQiOiIxMTA2NDc2OTQwIn0.MygCo_b-l1khRfC-V8_iYvqbeykHy4upKbdghs8ElQxBegN-wMDKfUwNNDyUH0ZQK8_YYZeQULFICMhoYsxTWA"]
-    TG_TOKEN = st.secrets["https://github.com/twopirllc/pandas-ta/archive/refs/heads/master.zip"]
+    TG_TOKEN = st.secrets["8289933882:AAGgTyAhFHYzlKbZ_0rvH8GztqXeTB6P-yQ"]
     TG_CHAT_ID = st.secrets["2115666034"]
 except Exception as e:
     st.error("Secrets missing! Please check Streamlit Settings.")
