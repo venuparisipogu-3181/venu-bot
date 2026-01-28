@@ -105,8 +105,8 @@ if st.button("🚀 Execute Best Strike Order"):
 import streamlit as st
 import streamlit.components.v1 as components
 
+# 1. చార్ట్ ఫంక్షన్ - ఇక్కడ symbol ని డైరెక్ట్ గా వాడుతున్నాం
 def display_tradingview_chart(symbol_name):
-    # TradingView Full Advanced Widget
     tradingview_html = f"""
     <div class="tradingview-widget-container" style="height:800px; width:100%;">
       <div id="tradingview_full_widget" style="height:800px;"></div>
@@ -114,7 +114,7 @@ def display_tradingview_chart(symbol_name):
       <script type="text/javascript">
       new TradingView.widget({{
         "autosize": true,
-        "symbol": "{symbol_name}",
+        "symbol": "{symbol_name}",  // ఇక్కడ కరెక్ట్ సింబల్ వస్తుంది
         "interval": "5",
         "timezone": "Asia/Kolkata",
         "theme": "dark",
@@ -123,11 +123,9 @@ def display_tradingview_chart(symbol_name):
         "toolbar_bg": "#f1f3f6",
         "enable_publishing": false,
         "withdateranges": true,
-        "hide_side_toolbar": false,   // ఇది డ్రాయింగ్ టూల్స్ చూపిస్తుంది
+        "hide_side_toolbar": false,
         "allow_symbol_change": true,
         "details": true,
-        "hotlist": true,
-        "calendar": true,
         "container_id": "tradingview_full_widget"
       }});
       </script>
@@ -137,23 +135,23 @@ def display_tradingview_chart(symbol_name):
 
 # --- UI సెక్షన్ ---
 st.divider()
-st.subheader("📈 Live Market Intelligence Chart")
+st.subheader("📈 Live Market Chart")
 
-# ఇండెక్స్ సెలెక్షన్ బాక్స్
+# 2. ఇండెక్స్ సెలెక్షన్
 chart_choice = st.selectbox(
     "చార్ట్ చూడాల్సిన ఇండెక్స్ సెలెక్ట్ చేయండి:", 
-    ["NIFTY 50", "BANKNIFTY", "SENSEX", "FINNIFTY"]
+    ["NIFTY 50", "BANKNIFTY", "SENSEX"]
 )
 
-# సింబల్ మ్యాపింగ్ (Exchange ని బట్టి)
+# 3. కరెక్ట్ సింబల్ ని అసైన్ చేయడం (IMPORTANT STEP)
 if chart_choice == "NIFTY 50":
-    final_symbol = "NSE:NIFTY"
+    target_symbol = "NSE:NIFTY"
 elif chart_choice == "BANKNIFTY":
-    final_symbol = "NSE:BANKNIFTY"
+    target_symbol = "NSE:BANKNIFTY"
 elif chart_choice == "SENSEX":
-    final_symbol = "BSE:SENSEX"
-elif chart_choice == "FINNIFTY":
-    final_symbol = "NSE:FINNIFTY"
+    target_symbol = "BSE:SENSEX"
+else:
+    target_symbol = "NSE:NIFTY" # డిఫాల్ట్ గా నిఫ్టీ
 
-# చార్ట్ ని ప్రదర్శించడం
-display_tradingview_chart(final_symbol)
+# 4. చార్ట్ ని పిలవడం (Calling the function with the target_symbol)
+display_tradingview_chart(target_symbol)
