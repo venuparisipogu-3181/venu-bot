@@ -154,3 +154,56 @@ display_tradingview_chart(chart_sym_map.get(idx, "NSE:NIFTY"))
 if st.session_state.monitor_on:
     time.sleep(2)
     st.rerun()
+import streamlit as st
+import pandas as pd
+from dhanhq import dhanhq
+import streamlit.components.v1 as components # ఇది ఖచ్చితంగా ఉండాలి
+
+# ... (పాత కోడ్: Authentication, Assistant Functions) ...
+
+# --- CHART FUNCTION (ఇక్కడ యాడ్ చేయండి) ---
+def display_tradingview_chart(symbol_name):
+    tradingview_html = f"""
+    <div style="height:600px; width:100%;">
+      <div id="tradingview_full_widget" style="height:600px;"></div>
+      <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
+      <script type="text/javascript">
+      new TradingView.widget({{
+        "autosize": true,
+        "symbol": "{symbol_name}",
+        "interval": "5",
+        "timezone": "Asia/Kolkata",
+        "theme": "dark",
+        "style": "1",
+        "locale": "in",
+        "toolbar_bg": "#f1f3f6",
+        "enable_publishing": false,
+        "withdateranges": true,
+        "hide_side_toolbar": false,
+        "allow_symbol_change": true,
+        "details": true,
+        "container_id": "tradingview_full_widget"
+      }});
+      </script>
+    </div>
+    """
+    components.html(tradingview_html, height=620)
+
+# --- UI SECTION (ఫైల్ చివరలో యాడ్ చేయండి) ---
+st.divider()
+st.subheader("📈 Live Market Chart Analysis")
+
+chart_choice = st.selectbox(
+    "చార్ట్ చూడాల్సిన ఇండెక్స్ సెలెక్ట్ చేయండి:", 
+    ["NIFTY", "BANKNIFTY", "SENSEX", "FINNIFTY"]
+)
+
+chart_sym_map = {
+    "NIFTY": "NSE:NIFTY",
+    "BANKNIFTY": "NSE:BANKNIFTY",
+    "SENSEX": "BSE:SENSEX",
+    "FINNIFTY": "NSE:FINNIFTY"
+}
+
+target_symbol = chart_sym_map.get(chart_choice, "NSE:NIFTY")
+display_tradingview_chart(target_symbol)
