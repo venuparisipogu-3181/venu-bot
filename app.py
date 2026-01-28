@@ -102,13 +102,14 @@ with col3:
 
 if st.button("🚀 Execute Best Strike Order"):
     st.success(f"{trade_idx} లో ఆర్డర్ ప్లేస్ అయింది! టెలిగ్రామ్ అలర్ట్ పంపాము.")
+import streamlit as st
 import streamlit.components.v1 as components
 
-def display_tradingview_chart(symbol):
-    # TradingView చార్ట్ విడ్జెట్ కోడ్
+def display_full_height_chart(symbol):
+    # ఇక్కడ height ని 800 కి పెంచి, స్టైల్ ని ఫోర్స్ చేస్తున్నాను
     tradingview_html = f"""
-    <div class="tradingview-widget-container" style="height:500px;">
-      <div id="tradingview_chart"></div>
+    <div style="height:800px; width:100%;">
+      <div id="tradingview_full" style="height:800px; width:100%;"></div>
       <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
       <script type="text/javascript">
       new TradingView.widget({{
@@ -121,25 +122,17 @@ def display_tradingview_chart(symbol):
         "locale": "in",
         "toolbar_bg": "#f1f3f6",
         "enable_publishing": false,
+        "withdateranges": true,
         "hide_side_toolbar": false,
         "allow_symbol_change": true,
-        "container_id": "tradingview_chart"
+        "container_id": "tradingview_full"
       }});
       </script>
     </div>
     """
-    components.html(tradingview_html, height=500)
+    # Streamlit component height ని కూడా 820 కి పెంచాలి లేదంటే కట్ అయిపోతుంది
+    components.html(tradingview_html, height=820, scrolling=False)
 
-# --- UI లో చార్ట్ డిస్‌ప్లే ---
-st.divider()
-st.subheader("📈 Live Market Chart")
-
-# యూజర్ ఏ ఇండెక్స్ చార్ట్ చూడాలో సెలెక్ట్ చేసుకోవచ్చు
-chart_choice = st.selectbox("చార్ట్ చూడాల్సిన ఇండెక్స్ సెలెక్ట్ చేయండి:", ["NIFTY", "BANKNIFTY", "FINNIFTY"])
-
-if chart_choice == "NIFTY":
-    display_tradingview_chart("NIFTY")
-elif chart_choice == "BANKNIFTY":
-    display_tradingview_chart("BANKNIFTY")
-else:
-    display_tradingview_chart("FINNIFTY")
+# UI Display
+st.subheader(f"📈 {chart_idx} Full Height Live Analysis")
+display_full_height_chart(chart_idx)
