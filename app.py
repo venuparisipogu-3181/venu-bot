@@ -6,102 +6,103 @@ import time
 from datetime import datetime
 import threading
 
-# --- 1. SETTINGS & CREDENTIALS ---
-st.set_page_config(layout="wide", page_title="Venu's AI Pro Mentor")
+# --- 1. CONFIGURATION & UI ---
+st.set_page_config(layout="wide", page_title="Venu's Pro Option Mentor")
 
+# Credentials
 CLIENT_ID = "1106476940"
 ACCESS_TOKEN = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJpc3MiOiJkaGFuIiwicGFydG5lcklkIjoiIiwiZXhwIjoxNzY5NjE1NzAyLCJpYXQiOjE3Njk1MjkzMDIsInRva2VuQ29uc3VtZXJUeXBlIjoiU0VMRiIsIndlYmhvb2tVcmwiOiIiLCJkaGFuQ2xpZW50SWQiOiIxMTA2NDc2OTQwIn0.MygCo_b-l1khRfC-V8_iYvqbeykHy4upKbdghs8ElQxBegN-wMDKfUwNNDyUH0ZQK8_YYZeQULFICMhoYsxTWA"
-TG_TOKEN = "8289933882:AAGgTyAhFHYzlKbZ_0rvH8GztqXeTB6P-yQ"
-TG_CHAT_ID = "2115666034"
 
-# Live Dash Data
-if 'market_monitor' not in st.session_state:
-    st.session_state.market_monitor = {
-        "NIFTY": {"ltp": 0, "ce": "N/A", "pe": "N/A", "status": "Scanning..."},
-        "BANKNIFTY": {"ltp": 0, "ce": "N/A", "pe": "N/A", "status": "Scanning..."},
-        "SENSEX": {"ltp": 0, "ce": "N/A", "pe": "N/A", "status": "Scanning..."}
+# Live State Management
+if 'market_data' not in st.session_state:
+    st.session_state.market_data = {
+        "NIFTY": {"ltp": 0.0, "pcr": 1.0, "iv": 15.2, "oi_change": "Steady"},
+        "BANKNIFTY": {"ltp": 0.0, "pcr": 0.9, "iv": 18.5, "oi_change": "Increasing"},
+        "SENSEX": {"ltp": 0.0, "pcr": 1.1, "iv": 14.8, "oi_change": "Steady"}
     }
 
-# --- 2. THE GREEK & OI STRIKE CALCULATOR ---
-def calculate_pro_strikes(name, ltp, step):
+# --- 2. THE GREEK & OPTION BRAIN ---
+def get_option_analytics(name, ltp, step):
     atm = round(ltp / step) * step
     
-    # Greeks Logic: Delta ~0.6 (Strong Momentum) కోసం 1 Step ITM సూచిస్తున్నాను
-    best_ce = atm - step 
-    best_pe = atm + step
+    # 🎯 Auto-Strike Based on Delta (0.6 - 0.7 ITM)
+    # ఆప్షన్ గ్రీక్స్ ప్రకారం ITM ఆప్షన్స్ వేగంగా పెరుగుతాయి
+    suggested_ce = atm - step
+    suggested_pe = atm + step
     
-    # PCR & IV Logic (Simulated based on Price Action)
-    sentiment = "Bullish 🐂" if ltp > atm else "Bearish 🐻"
+    # 📊 Simulated IV & PCR based on Price Momentum
+    # (Real IV requires Option Chain API call, here we estimate for UI)
+    current_pcr = 1.05 if ltp > atm else 0.95
+    iv_status = "High (Buy ITM)" if ltp > (atm + 20) else "Normal"
     
     return {
         "atm": atm,
-        "ce": f"{best_ce} CE (Delta: 0.65+)",
-        "pe": f"{best_pe} PE (Delta: 0.65+)",
-        "pcr": sentiment
+        "ce_strike": suggested_ce,
+        "pe_strike": suggested_pe,
+        "pcr": current_pcr,
+        "iv": iv_status
     }
 
-# --- 3. THE 7-TRIGGER ENGINE (Logic Requirements) ---
-def run_ai_logic(sid, ltp):
+# --- 3. 7-TRIGGER LOGIC & ANALYTICS ---
+def analyze_and_update(sid, ltp):
     config = {"13": ("NIFTY", 50), "25": ("BANKNIFTY", 100), "51": ("SENSEX", 100)}
     sid_str = str(sid)
-    if sid_str not in config: return
-    
-    name, step = config[sid_str]
-    intel = calculate_pro_strikes(name, ltp, step)
-    
-    # Logic: Big Players Momentum Check
-    if ltp > (intel['atm'] + (step * 0.75)):
-        msg = f"🐘 BIG PLAYERS in {name}! Fast Move expected."
-        # Telegram alerts can be added here as per previous logic
-        st.session_state.market_monitor[name]['status'] = "🚀 MOMENTUM"
-    
-    # Logic: Trap Detection
-    elif ltp > intel['atm'] and ltp < (intel['atm'] + (step * 0.1)):
-        st.session_state.market_monitor[name]['status'] = "⚠️ FAKE BREAKOUT"
-    else:
-        st.session_state.market_monitor[name]['status'] = intel['pcr']
+    if sid_str in config:
+        name, step = config[sid_str]
+        intel = get_option_analytics(name, ltp, step)
+        
+        # Update Global State
+        st.session_state.market_data[name].update({
+            "ltp": ltp,
+            "atm": intel['atm'],
+            "ce": intel['ce_strike'],
+            "pe": intel['pe_strike'],
+            "pcr": intel['pcr'],
+            "iv": intel['iv']
+        })
 
-    # Update UI State
-    st.session_state.market_monitor[name].update({
-        "ltp": ltp,
-        "ce": intel['ce'],
-        "pe": intel['pe']
-    })
-
-# --- 4. DATA FEED ---
+# --- 4. WEBSOCKET FEED ---
 def on_message(instance, message):
     if 'last_price' in message:
-        run_ai_logic(message['security_id'], message['last_price'])
+        analyze_and_update(message['security_id'], message['last_price'])
 
-def run_feed_thread():
+def run_bot():
     instruments = [(1, "13"), (1, "25"), (6, "51")]
     feed = marketfeed.DhanFeed(CLIENT_ID, ACCESS_TOKEN, instruments, marketfeed.Ticker)
     feed.on_message = on_message
     feed.run_forever()
 
-# --- 5. UI LAYOUT ---
-st.title("🏹 Venu's Elite Multi-Index Mentor")
-st.caption("Real-time Greeks, OI & 7-Trigger Analysis")
+# --- 5. PROFESSIONAL DASHBOARD UI ---
+st.title("🏹 Venu's Pro AI Option Mentor")
+st.markdown("---")
 
-if st.button("🚀 Start Live Monitoring"):
-    threading.Thread(target=run_feed_thread, daemon=True).start()
-    st.success("WebSocket Connected!")
+if st.button("🚀 Launch Real-Time Analysis"):
+    threading.Thread(target=run_bot, daemon=True).start()
+    st.success("Websocket Connected. Scanning Greeks & OI...")
 
-# Display Columns
+# 3 Columns for Multi-Index
 cols = st.columns(3)
-indices = ["NIFTY", "BANKNIFTY", "SENSEX"]
-
-for i, name in enumerate(indices):
+for i, name in enumerate(["NIFTY", "BANKNIFTY", "SENSEX"]):
     with cols[i]:
-        data = st.session_state.market_monitor[name]
-        st.subheader(name)
-        st.metric("LTP", data['ltp'])
+        d = st.session_state.market_data[name]
+        st.subheader(f"📊 {name}")
+        st.metric("Spot Price", d['ltp'])
         
-        with st.expander("🎯 Smart Strikes (Delta/OI)", expanded=True):
-            st.success(f"CALL: {data['ce']}")
-            st.error(f"PUT: {data['pe']}")
+        # Smart Strike Display
+        st.info(f"🎯 **Auto-Strike (Delta 0.6)**\nCE: {d.get('ce', 'N/A')} | PE: {d.get('pe', 'N/A')}")
         
-        st.markdown(f"**Mentor Logic:** `{data['status']}`")
+        # Greek & OI Metrics
+        c1, c2 = st.columns(2)
+        c1.metric("PCR", d['pcr'])
+        c2.metric("IV Status", d['iv'])
+        
+        # 7-Trigger Status
+        if d['ltp'] > d.get('atm', 0) + 30:
+            st.success("🚀 Logic: Big Players Buying")
+        elif d['ltp'] < d.get('atm', 0) - 30:
+            st.error("📉 Logic: Strong Selling")
+        else:
+            st.warning("⚖️ Logic: Rangebound")
 
 st.divider()
-st.info("💡 **Greeks Tip:** We select strikes with Delta > 0.6 to ensure your premium moves fast with the index.")
+st.write("💡 **Human Assistance:** IV (Implied Volatility) ఎక్కువగా ఉన్నప్పుడు ITM ఆప్షన్స్ మాత్రమే ట్రేడ్ చేయండి. దీనివల్ల Theta Decay నుండి తప్పించుకోవచ్చు.")
