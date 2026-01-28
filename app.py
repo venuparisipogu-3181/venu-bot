@@ -105,11 +105,11 @@ if st.button("🚀 Execute Best Strike Order"):
 import streamlit as st
 import streamlit.components.v1 as components
 
-def display_full_height_chart(symbol):
-    # ఇక్కడ height ని 800 కి పెంచి, స్టైల్ ని ఫోర్స్ చేస్తున్నాను
+def display_tradingview_chart(symbol):
+    # 1. ఇక్కడ స్టైల్ లో height ని 800px కి పెంచాను
     tradingview_html = f"""
-    <div style="height:800px; width:100%;">
-      <div id="tradingview_full" style="height:800px; width:100%;"></div>
+    <div class="tradingview-widget-container" style="height:800px; width:100%;">
+      <div id="tradingview_chart" style="height:800px;"></div>
       <script type="text/javascript" src="https://s3.tradingview.com/tv.js"></script>
       <script type="text/javascript">
       new TradingView.widget({{
@@ -122,17 +122,26 @@ def display_full_height_chart(symbol):
         "locale": "in",
         "toolbar_bg": "#f1f3f6",
         "enable_publishing": false,
-        "withdateranges": true,
         "hide_side_toolbar": false,
         "allow_symbol_change": true,
-        "container_id": "tradingview_full"
+        "container_id": "tradingview_chart"
       }});
       </script>
     </div>
     """
-    # Streamlit component height ని కూడా 820 కి పెంచాలి లేదంటే కట్ అయిపోతుంది
-    components.html(tradingview_html, height=820, scrolling=False)
+    # 2. ముఖ్యమైన మార్పు: ఇక్కడ height ని కూడా 800 లేదా అంతకంటే ఎక్కువ పెట్టాలి
+    components.html(tradingview_html, height=800)
 
-# UI Display
-st.subheader(f"📈 {chart_idx} Full Height Live Analysis")
-display_full_height_chart(chart_idx)
+# --- UI లో చార్ట్ డిస్‌ప్లే ---
+st.divider()
+st.subheader("📈 Live Market Chart (Big Screen)")
+
+chart_choice = st.selectbox("చార్ట్ చూడాల్సిన ఇండెక్స్ సెలెక్ట్ చేయండి:", ["NIFTY", "BANKNIFTY", "FINNIFTY"])
+
+# మీరు పంపిన లాజిక్ ప్రకారం:
+if chart_choice == "NIFTY":
+    display_tradingview_chart("NIFTY")
+elif chart_choice == "BANKNIFTY":
+    display_tradingview_chart("BANKNIFTY")
+else:
+    display_tradingview_chart("FINNIFTY")
