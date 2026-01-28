@@ -11,7 +11,7 @@ st.set_page_config(layout="wide", page_title="PRO Algo-Assistant", page_icon="�
 
 # Secrets Check
 if "DHAN_CLIENT_ID" not in st.secrets:
-    st.error("❌ Secrets లో ధన్ వివరాలు (DHAN_CLIENT_ID, DHAN_ACCESS_TOKEN) యాడ్ చేయండి!")
+    st.error("❌ Secrets లో ధన్ వివరాలు (1106476940, eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJpc3MiOiJkaGFuIiwicGFydG5lcklkIjoiIiwiZXhwIjoxNzY5NjE1NzAyLCJpYXQiOjE3Njk1MjkzMDIsInRva2VuQ29uc3VtZXJUeXBlIjoiU0VMRiIsIndlYmhvb2tVcmwiOiIiLCJkaGFuQ2xpZW50SWQiOiIxMTA2NDc2OTQwIn0.MygCo_b-l1khRfC-V8_iYvqbeykHy4upKbdghs8ElQxBegN-wMDKfUwNNDyUH0ZQK8_YYZeQULFICMhoYsxTWA) యాడ్ చేయండి!")
     st.stop()
 
 dhan = dhanhq(st.secrets["DHAN_CLIENT_ID"], st.secrets["DHAN_ACCESS_TOKEN"])
