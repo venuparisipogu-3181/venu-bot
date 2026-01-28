@@ -129,3 +129,32 @@ for i, (name, cfg) in enumerate(indices.items()):
 # --- 6. AUTO REFRESH ---
 time.sleep(3) # 3 సెకన్లకు ఒకసారి రిఫ్రెష్ అవుతుంది
 st.rerun()
+import streamlit as st
+import requests
+from dhanhq import dhanhq
+
+# Secrets చెక్ చేయడం
+try:
+    dhan = dhanhq(st.secrets["1106476940"], st.secrets["eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJpc3MiOiJkaGFuIiwicGFydG5lcklkIjoiIiwiZXhwIjoxNzY5NjE1NzAyLCJpYXQiOjE3Njk1MjkzMDIsInRva2VuQ29uc3VtZXJUeXBlIjoiU0VMRiIsIndlYmhvb2tVcmwiOiIiLCJkaGFuQ2xpZW50SWQiOiIxMTA2NDc2OTQwIn0.MygCo_b-l1khRfC-V8_iYvqbeykHy4upKbdghs8ElQxBegN-wMDKfUwNNDyUH0ZQK8_YYZeQULFICMhoYsxTWA"])
+    
+    st.success("✅ ధన్ (Dhan) కనెక్షన్ బాగుంది!")
+    
+    # ఒక శాంపిల్ డేటా రిక్వెస్ట్
+    test_resp = dhan.get_ltp_data("NIFTY", "NSE_INDEX", "13")
+    if test_resp.get('status') == 'success':
+        st.write(f"NIFTY లైవ్ ప్రైస్: {test_resp['data']['last_price']}")
+    
+    # టెలిగ్రామ్ టెస్ట్
+    tg_url = f"https://api.telegram.org/bot{st.secrets['8289933882:AAGgTyAhFHYzlKbZ_0rvH8GztqXeTB6P-yQ']}/sendMessage"
+    tg_resp = requests.post(tg_url, data={
+        "chat_id": st.secrets["2115666034"], 
+        "text": "🏹 బాస్! మీ AI అసిస్టెంట్ రెడీ అయిపోయింది. ఇక మార్కెట్ ని వేటాడదాం!"
+    })
+    
+    if tg_resp.status_code == 200:
+        st.success("🚀 టెలిగ్రామ్ మెసేజ్ పంపబడింది! మీ ఫోన్ చెక్ చేయండి.")
+    else:
+        st.error("❌ టెలిగ్రామ్ ఐడిలు తప్పుగా ఉన్నట్లున్నాయి.")
+
+except Exception as e:
+    st.error(f"⚠️ ఏదో పొరపాటు జరిగింది: {e}")
