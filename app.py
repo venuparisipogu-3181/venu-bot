@@ -82,7 +82,7 @@ def run_master_engine():
 # --- 4. UI LAYOUT ---
 st.title("🦅 Venu Algo-Intelligence Dashboard")
 
-# 1. Screener Row
+# 1. Screener Row (Refresh బటన్ మరియు స్క్రీనర్ ఇక్కడే ఉంటాయి)
 st.subheader("📊 Institutional Screener")
 if st.button("🔄 Refresh Data & Scan"):
     data_list = run_master_engine()
@@ -105,7 +105,8 @@ col_a, col_b = st.columns([1, 2])
 
 with col_a:
     st.subheader("⚡ Quick Execution")
-    trade_idx = st.selectbox("Select Trade Index", list(INDEX_CONFIG.keys()), key="exec_idx")
+    # ఇక్కడ సింబల్స్ ని సింపుల్ లిస్ట్ గా మార్చాను
+    trade_idx = st.selectbox("Select Trade Index", ["NIFTY 50", "BANKNIFTY", "SENSEX"])
     trade_bias = st.radio("View", ["CALL", "PUT"])
     trade_lots = st.number_input("Lots", min_value=1, value=1)
     if st.button("🚀 Execute Order"):
@@ -113,7 +114,19 @@ with col_a:
 
 with col_b:
     st.subheader("📈 Live Analytics Chart")
-    chart_choice = st.selectbox("Select Chart Index", list(INDEX_CONFIG.items()), 
-                                format_func=lambda x: x[0])
-    # ఇక్కడ chart_choice ఒక tuple (key, value), కాబట్టి value లోని tv_sym వాడతాం
-    display_tradingview_chart(chart_choice[1]['tv_sym'])
+    
+    # ముఖ్యమైన మార్పు: ఇక్కడ డైరెక్ట్ గా పేరు సెలెక్ట్ చేసుకునేలా మార్చాను
+    chart_choice = st.selectbox("Select Chart Index", ["NIFTY 50", "BANKNIFTY", "SENSEX"])
+    
+    # సింబల్ మ్యాపింగ్
+    if chart_choice == "NIFTY 50":
+        final_symbol = "NSE:NIFTY"
+    elif chart_choice == "BANKNIFTY":
+        final_symbol = "NSE:BANKNIFTY"
+    elif chart_choice == "SENSEX":
+        final_symbol = "BSE:SENSEX"
+    else:
+        final_symbol = "NSE:NIFTY"
+
+    # చార్ట్ ని ప్రదర్శించడం
+    display_tradingview_chart(final_symbol)
