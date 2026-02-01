@@ -1,8 +1,6 @@
-dhanhq
 streamlit
 pandas
 numpy
-mibian
+truedata-ws
+py_vollib
 python-dotenv
-requests
-
