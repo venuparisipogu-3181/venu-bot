@@ -1,6 +1,5 @@
 streamlit
 pandas
 numpy
-truedata-ws
-py_vollib
-python-dotenv
+dhanhq
+websocket-client
