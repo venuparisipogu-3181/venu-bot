@@ -1,4 +1,4 @@
-# oi_logic.py - Your original (perfect)
+# oi_logic.py - FIXED column names!
 import pandas as pd
 import numpy as np
 
@@ -22,24 +22,29 @@ def calculate_pcr(total_call, total_put):
     return round(total_put / abs(total_call), 2)
 
 def three_strike_analysis(df):
+    # FIXED: Column names match app.py output
+    if len(df) < 3:
+        return pd.DataFrame()
+    
     results = []
     for i in range(len(df)-2):
-        call_sum = df.iloc[i:i+3]["Call OI Change"].sum()
-        put_sum = df.iloc[i:i+3]["Put OI Change"].sum()
+        # Use exact column names from app.py
+        call_sum = df.iloc[i:i+3]["Call OI Δ"].sum()
+        put_sum = df.iloc[i:i+3]["Put OI Δ"].sum()
         diff = call_sum - put_sum
+        
         change_pct = 0
         if abs(call_sum + put_sum) > 0:
             change_pct = round((diff / abs(call_sum + put_sum))*100, 2)
-        if abs(diff) > REV_THRESHOLD:
-            signal = "Reversal Zone"
-        else:
-            signal = "-"
+        
+        signal = "Reversal Zone" if abs(diff) > REV_THRESHOLD else "-"
+        
         results.append({
             "Strike Range": f"{df.iloc[i]['Strike']} - {df.iloc[i+2]['Strike']}",
-            "3 Strike Call Change": call_sum,
-            "3 Strike Put Change": put_sum,
+            "3 Strike Call": call_sum,
+            "3 Strike Put": put_sum,
             "Difference": diff,
-            "Change % Difference": change_pct,
+            "Change %": change_pct,
             "Rev Signal": signal
         })
     return pd.DataFrame(results)
