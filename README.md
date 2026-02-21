@@ -1,16 +1,19 @@
-# 🚀 Venu Bot Trading Terminal
+# LIVE NIFTY Institutional OI Dashboard
 
-**Live NIFTY/BankNifty Dashboard** | **Candlestick Charts** | **Option Chain** | **Auto Signals**
+Features:
+- Dhan WebSocket Integration
+- ATM ±5 Strike Monitoring
+- OI Change Tracking
+- PCR Calculation
+- 3 Strike Institutional Analysis
+- Reversal Detection
 
-## 🎯 Features
-- ✅ Live Candlestick + EMA 9/20
-- ✅ Real-time Option Chain  
-- ✅ Auto CE/PE Signals
-- ✅ Venu Bot Telegram Alerts
-- ✅ Buffer-Free Performance
-- ✅ Mobile Responsive
+Setup:
 
-## 🚀 Quick Start
-```bash
-pip install -r requirements.txt
-streamlit run app.py
+1. Install requirements:
+   pip install -r requirements.txt
+
+2. Add your Dhan credentials in app.py
+
+3. Run:
+   streamlit run app.py
