@@ -1,7 +1,6 @@
-streamlit
-pandas
-numpy
-dhanhq
-websocket-client
 streamlit==1.38.0
-pandas==2
+pandas==2.2.2
+numpy==1.26.4
+websocket-client==1.8.0
+# DhanHQ LATEST GitHub నుండి (DhanContext fix)
+git+https://github.com/dhan-oss/DhanHQ-py.git@main
