@@ -3,3 +3,5 @@ pandas
 numpy
 dhanhq
 websocket-client
+streamlit==1.38.0
+pandas==2
